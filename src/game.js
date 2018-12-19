@@ -187,7 +187,7 @@ players.forEach((p, idx) => {
   game.addBody(cir);
   p.face = cir;
 
-  const newPaddlePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 300}, p.angle);
+  const newPaddlePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 280}, p.angle);
   const paddle = new entities.Rectangle({
     x: newPaddlePt.x,
     y: newPaddlePt.y,
