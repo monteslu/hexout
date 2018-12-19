@@ -2,15 +2,17 @@ import { box2d, keys, utils } from 'frozenjs';
 
 import boxData from './boxData';
 import draw from './draw';
-import Head from './Head';
+import Ball from './Ball';
 import rawBricks from './bricks';
 import colors from './colors';
+import Brick from './Brick';
+import Face from './Face';
 
-const { BoxGame, entities } = box2d;
-const { Revolute } = box2d.joints;
+const { BoxGame, entities, joints } = box2d;
+const { Revolute } = joints;
 const { radiansFromCenter, scalePoints, rotateRadiansAroundCenter } = utils;
 
-const speed = 10;
+const speed = 30;
 
 // Full HD Game !
 const fullW = 1920;
@@ -20,8 +22,8 @@ const fullH = 1080;
 const game = new BoxGame({
   canvasId: 'canvas',
   gameAreaId: 'gameArea',
-  canvasPercentage: 0.95,
-  boxOptions: {resolveCollisions: true},
+  canvasPercentage: 1,
+  boxOptions: {resolveCollisions: true, gravityY: 0},
   draw: draw,
   initInput: function(im){
     im.addArrowKeyActions();
@@ -31,38 +33,38 @@ const game = new BoxGame({
   },
   handleInput: function(im){
     if(im.keyActions[keys.LEFT].isPressed()){
-      this.box.applyImpulseDegrees('head', 270, speed);
+      this.box.applyImpulseDegrees('ball', 270, speed);
     }
 
     if(im.keyActions[keys.RIGHT].isPressed()){
-      this.box.applyImpulseDegrees('head', 90, speed);
+      this.box.applyImpulseDegrees('ball', 90, speed);
     }
 
     if(im.keyActions[keys.UP].isPressed()){
-      this.box.applyImpulseDegrees('head', 0, speed);
+      this.box.applyImpulseDegrees('ball', 0, speed);
     }
 
     if(im.keyActions[keys.DOWN].isPressed()){
-      this.box.applyImpulseDegrees('head', 180, speed);
+      this.box.applyImpulseDegrees('ball', 180, speed);
     }
 
     if(im.keyActions.A.isPressed()){
-      this.box.applyTorque('head', -speed * 100);
+      this.box.applyTorque('ball', -speed * 100);
     }
 
     if(im.keyActions.D.isPressed()){
-      this.box.applyTorque('head', speed  * 100);
+      this.box.applyTorque('ball', speed  * 100);
     }
 
     if(im.mouseAction.isPressed()){
-      this.box.applyImpulse('head', radiansFromCenter(this.entities.torso, scalePoints(im.mouseAction.position, 1/this.box.scale)), speed);
+      this.box.applyImpulse('ball', radiansFromCenter(this.entities.ball, scalePoints(im.mouseAction.position, 1/this.box.scale)), speed);
     }
   },
   update: function(millis) {
     this.updateBox(millis);
-    if(this.head && this.head.collisions) {
-      //console.log('head', this.head.collisions);
-      this.head.collisions.forEach((et) => {
+    if(this.ball && this.ball.collisions) {
+      //console.log('ball', this.ball.collisions);
+      this.ball.collisions.forEach((et) => {
         const ent = this.entities[et.id];
         if(ent && ent.brick) {
           this.removeBody(et);
@@ -84,17 +86,25 @@ const game = new BoxGame({
         }
       })
     }
+
+    game.players.forEach((p) => {
+      
+        
+        this.box.setAngularVelocity(p.paddle.id, 0);
+        const ang = utils.radiansFromCenter(p.anchor, p.paddle);
+        this.box.setAngle(p.paddle.id, ang);
+      
+    });
+
   }
 });
 
-
-
   //add everything to box from the boxData
 boxData.entities.forEach(function(props){
-  if(props.id === 'head'){
+  if(props.id === 'ball'){
     props.img = game.resourceManager.loadImage('images/head.png');
-    game.head = new Head(props);
-    game.addBody(game.head);
+    game.ball = new Ball(props);
+    game.addBody(game.ball);
   } else {
     const Entity = entities[props.type];
     if(Entity){
@@ -145,34 +155,62 @@ const players = c.map((cpt, idx) => {
 
 console.log('players', players);
 
-const d1 = Math.sqrt(
-  Math.pow((c[1][0] - c[0][0]), 2) 
-  + Math.pow((c[1][1] - c[0][1]), 2) 
-);
+// const d1 = Math.sqrt(
+//   Math.pow((c[1][0] - c[0][0]), 2) 
+//   + Math.pow((c[1][1] - c[0][1]), 2) 
+// );
 
-const d2 = Math.sqrt(
-  Math.pow((c[5][0] - c[0][0]), 2) 
-  + Math.pow((c[5][1] - c[0][1]), 2) 
-)
+// const d2 = Math.sqrt(
+//   Math.pow((c[5][0] - c[0][0]), 2) 
+//   + Math.pow((c[5][1] - c[0][1]), 2) 
+// )
 
-console.log('d', d1, d2, d1 - d2, c );
+// console.log('d', d1, d2, d1 - d2, c );
 
 const origin = {x: players[0].pt[0], y: players[0].pt[1]};
 
 players.forEach((p, idx) => {
   console.log('creating player', p);
   const ppt = {x: p.pt[0], y: p.pt[1]};
-  const newHeadPt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 55}, p.angle);
-  const cir = new entities.Circle({
-    x: newHeadPt.x,
-    y: newHeadPt.y,
+
+  const newBallPt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 55}, p.angle);
+  const cir = new Face({
+    x: newBallPt.x,
+    y: newBallPt.y,
     radius: 50,
     staticBody: true,
     restitution: 2,
     fillStyle: p.color,
-    king: true
+    king: true,
+    ball: game.ball,
   });
   game.addBody(cir);
+  p.face = cir;
+
+  const newPaddlePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 300}, p.angle);
+  const paddle = new entities.Rectangle({
+    x: newPaddlePt.x,
+    y: newPaddlePt.y,
+    halfWidth: 40,
+    halfHeight: 10,
+    restitution: 1,
+    fillStyle: p.color,
+    paddle: true,
+    drawCenter: false
+  });
+  game.addBody(paddle);
+  p.paddle = paddle;
+
+  p.anchor = new entities.Circle({
+    x: p.pt[0],
+    y: p.pt[1],
+    radius: 0.1,
+    staticBody: true
+  });
+  game.addBody(p.anchor);
+
+  const cJoint = new joints.Distance({bodyId1: p.anchor.id, bodyId2: paddle.id, id: Math.random() + 'j'});
+  game.addJoint(cJoint);
 
   rawBricks.forEach((rb, jdx) => {
     const ops = {
@@ -184,12 +222,12 @@ players.forEach((p, idx) => {
       restitution: 1.5,
       playerId: idx,
       fillStyle: p.color,
-      brick: true
+      brick: true,
+      preAngle: p.angle,
     };
   
     const pt = rotateRadiansAroundCenter(origin, ops, p.angle);
-    console.log('rotated pt', pt);
-  
+    
     ops.x = pt.x;
     ops.y = pt.y;
   
@@ -206,20 +244,19 @@ players.forEach((p, idx) => {
 
     ops.points = ops.points.map((oppt) => {
       return rotateRadiansAroundCenter({x: 0, y: 0}, oppt, p.angle);
-    })
+    });
+
+    ops.prex = ops.x;
+    ops.prey = ops.y;
   
-    const b = new entities.Polygon(ops);
-    //console.log(b);
-    // setTimeout(() => {
-      game.addBody(b);
-      // console.log('wtf timeout', b);
-    // }, 10 + (idx * 10) + jdx);
+    const b = new Brick(ops);
+    game.addBody(b);
 
   });
 
 });
 
-
+game.players = players;
 
 boxData.joints.forEach(function(props){
   var joint;
@@ -239,4 +276,4 @@ window.game = game;
 
 //launch the game!
 game.run();
-game.box.applyImpulseDegrees('head', Math.random() * 360, 50);
+game.box.applyImpulseDegrees('ball', Math.random() * 360, 50);

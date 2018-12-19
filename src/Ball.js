@@ -1,6 +1,6 @@
 import Circle from 'frozenjs/box2d/entities/Circle';
 
-export default class Head extends Circle {
+export default class Ball extends Circle {
   draw(ctx, scale) {
     scale = scale || this.scale || 1;
     ctx.save();

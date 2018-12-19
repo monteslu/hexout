@@ -1,3 +1,5 @@
+const wallRestitution = 2.5;
+
 module.exports = {
   "entities": [
     {
@@ -29,7 +31,8 @@ module.exports = {
       "zone": false,
       "type": "Polygon",
       "id": "uleftw",
-      "restitution": 5
+      "hidden": true,
+      "restitution": wallRestitution
     },
     {
       "points": [
@@ -59,7 +62,8 @@ module.exports = {
       "staticBody": true,
       "zone": false,
       "type": "Polygon",
-      "restitution": 5,
+      "restitution": wallRestitution,
+      "hidden": true,
       "id": "lleftw"
     },
     {
@@ -90,8 +94,9 @@ module.exports = {
       "staticBody": true,
       "zone": false,
       "type": "Polygon",
-      "restitution": 5,
-      "id": "urighttw"
+      "restitution": wallRestitution,
+      "id": "urighttw",
+      "hidden": true,
     },
     {
       "points": [
@@ -121,8 +126,9 @@ module.exports = {
       "staticBody": true,
       "zone": false,
       "type": "Polygon",
-      "restitution": 5,
-      "id": "lrighttw"
+      "restitution": wallRestitution,
+      "id": "lrighttw",
+      "hidden": true,
     },
     {
       "x": 960,
@@ -133,7 +139,8 @@ module.exports = {
       "zone": false,
       "type": "Rectangle",
       "id": "bottomw",
-      "restitution": 5
+      "restitution": wallRestitution,
+      "hidden": true,
     },
     {
       "x": 960,
@@ -143,7 +150,9 @@ module.exports = {
       "staticBody": true,
       "zone": false,
       "type": "Rectangle",
-      "id": "topw"
+      "id": "topw",
+      "restitution": wallRestitution,
+      "hidden": true,
     },
     {
       "x": 960,
@@ -154,7 +163,8 @@ module.exports = {
       "zone": false,
       "type": "Rectangle",
       "fillStyle": "#EECEB3",
-      "strokeStyle": "#EECEB3",
+      "strokeStyle": "red",
+      "lineWidth" : 5,
       "id": "neck"
     },
     {
@@ -165,15 +175,15 @@ module.exports = {
       "zone": false,
       "type": "Circle",
       "fillStyle": "rgba(239,208,207,0.2)",
-      "id": "head"
+      "id": "ball"
     },
   ],
   "joints": [
     {
-      "bodyId1": "head",
+      "bodyId1": "ball",
       "bodyId2": "neck",
       "type": "Revolute",
-      "id": "head",
+      "id": "balljoint",
       "jointAttributes": {
         "enableLimit": true,
         "lowerAngle": -0.5,
