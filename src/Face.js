@@ -18,37 +18,73 @@ export default class Face extends Circle {
     ctx.fill();
     ctx.stroke();
 
-    ctx.lineWidth = 1;
-    ctx.fillStyle = '#FFF';
-    ctx.beginPath();
-    ctx.arc(scaledX - 17, scaledY - 15, 10, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    const leftEye = {x: scaledX - 17, y: scaledY - 15};
+    const rightEye = {x: scaledX + 17, y: scaledY - 15};
 
-    ctx.beginPath();
-    ctx.arc(scaledX + 17, scaledY - 15, 10, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    if(!this.dead) {
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(scaledX - 17, scaledY - 15, 10, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 
-    const radsL = radiansFromCenter({x: scaledX - 17, y: scaledY - 15}, {x: this.ball.x * scale, y: this.ball.y * scale});
-    const radsR = radiansFromCenter({x: scaledX + 17, y: scaledY - 15}, {x: this.ball.x * scale, y: this.ball.y * scale});
+      ctx.beginPath();
+      ctx.arc(scaledX + 17, scaledY - 15, 10, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 
-    const lIris = rotateRadiansAroundCenter({x: scaledX - 17, y: scaledY - 15}, {x: scaledX - 17, y: scaledY - 20}, radsL);
-    const rIris = rotateRadiansAroundCenter({x: scaledX + 17, y: scaledY - 15}, {x: scaledX + 17, y: scaledY - 20}, radsR);
+      const radsL = radiansFromCenter(leftEye, {x: this.ball.x * scale, y: this.ball.y * scale});
+      const radsR = radiansFromCenter(rightEye, {x: this.ball.x * scale, y: this.ball.y * scale});
 
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(lIris.x, lIris.y, 6, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fill();
+      const lIris = rotateRadiansAroundCenter(leftEye, {x: scaledX - 17, y: scaledY - 20}, radsL);
+      const rIris = rotateRadiansAroundCenter(rightEye, {x: scaledX + 17, y: scaledY - 20}, radsR);
 
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(rIris.x, rIris.y, 6, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fill();
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(lIris.x, lIris.y, 6, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(rIris.x, rIris.y, 6, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.lineWidth = 2;
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.strokeStyle = this.fillStyle;
+      ctx.beginPath();
+      ctx.arc(scaledX, scaledY, this.radius * scale, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // ctx.strokeStyle = "black";
+      ctx.beginPath();
+      ctx.moveTo(leftEye.x - 10, leftEye.y - 10);
+      ctx.lineTo(leftEye.x + 10, leftEye.y + 10);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(leftEye.x + 10, leftEye.y - 10);
+      ctx.lineTo(leftEye.x - 10, leftEye.y + 10);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(rightEye.x - 10, rightEye.y - 10);
+      ctx.lineTo(rightEye.x + 10, rightEye.y + 10);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(rightEye.x + 10, rightEye.y - 10);
+      ctx.lineTo(rightEye.x - 10, rightEye.y + 10);
+      ctx.stroke();
+    }
+
+    
 
     ctx.lineWidth = ogLineWidth;
 

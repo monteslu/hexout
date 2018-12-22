@@ -1,4 +1,4 @@
-import { box2d, keys, utils } from 'frozenjs';
+import { box2d, utils } from 'frozenjs';
 
 import boxData from './boxData';
 import draw from './draw';
@@ -7,12 +7,15 @@ import rawBricks from './bricks';
 import colors from './colors';
 import Brick from './Brick';
 import Face from './Face';
+import handleInput from './handleInput';
 
 const { BoxGame, entities, joints } = box2d;
 const { Revolute } = joints;
 const { radiansFromCenter, scalePoints, rotateRadiansAroundCenter } = utils;
 
 const speed = 30;
+const playerSpeed = 0.004;
+const distFromAnchor = 290;
 
 // Full HD Game !
 const fullW = 1920;
@@ -30,36 +33,14 @@ const game = new BoxGame({
 
     im.addKeyAction('A');
     im.addKeyAction('D');
+    im.addKeyAction('Q');
+    im.addKeyAction('W');
+    im.addKeyAction('C');
+    im.addKeyAction('V');
+    im.addKeyAction('N');
+    im.addKeyAction('M');
   },
-  handleInput: function(im){
-    if(im.keyActions[keys.LEFT].isPressed()){
-      this.box.applyImpulseDegrees('ball', 270, speed);
-    }
-
-    if(im.keyActions[keys.RIGHT].isPressed()){
-      this.box.applyImpulseDegrees('ball', 90, speed);
-    }
-
-    if(im.keyActions[keys.UP].isPressed()){
-      this.box.applyImpulseDegrees('ball', 0, speed);
-    }
-
-    if(im.keyActions[keys.DOWN].isPressed()){
-      this.box.applyImpulseDegrees('ball', 180, speed);
-    }
-
-    if(im.keyActions.A.isPressed()){
-      this.box.applyTorque('ball', -speed * 100);
-    }
-
-    if(im.keyActions.D.isPressed()){
-      this.box.applyTorque('ball', speed  * 100);
-    }
-
-    if(im.mouseAction.isPressed()){
-      this.box.applyImpulse('ball', radiansFromCenter(this.entities.ball, scalePoints(im.mouseAction.position, 1/this.box.scale)), speed);
-    }
-  },
+  handleInput,
   update: function(millis) {
     this.updateBox(millis);
     if(this.ball && this.ball.collisions) {
@@ -69,31 +50,32 @@ const game = new BoxGame({
         if(ent && ent.brick) {
           this.removeBody(et);
         }
-        else if ( ent && ent.king) {
-          ent.fillStyle = 'black';
+        else if (ent && ent.king) {
+          console.log('king kill', ent);
+          ent.dead = true;
+          this.removeBody(this.players[ent.playerId].paddle);
         }
-      })
-    }
-    if(this.entities.neck && this.entities.neck.collisions) {
-      //console.log('entities.neck', this.entities.neck.collisions);
-      this.entities.neck.collisions.forEach((et) => {
-        const ent = this.entities[et.id];
-        if(ent && ent.brick) {
-          this.removeBody(et);
-        }
-        else if ( ent && ent.king) {
-          ent.fillStyle = 'black';
-        }
-      })
+      });
     }
 
+
     game.players.forEach((p) => {
-      
-        
+      if(!p.face.dead) {
+        if(p.direction > 0 && p.position < Math.PI) {
+          p.position += (playerSpeed * millis);
+          p.position = Math.min(p.position, Math.PI);
+        }
+        else if(p.direction < 0 && p.position > 0) {
+          p.position -= (playerSpeed * millis);
+          p.position = Math.max(p.position, 0);
+        }
+
+        const newPaddlePt = rotateRadiansAroundCenter(p.anchor, {x: p.anchor.x, y: p.anchor.y + (distFromAnchor / 30)}, p.angle + p.position - (Math.PI / 2));
+        this.box.setPosition(p.paddle.id, newPaddlePt.x, newPaddlePt.y);
+        this.box.setAngle(p.paddle.id, p.angle + p.position - (Math.PI / 2));
         this.box.setAngularVelocity(p.paddle.id, 0);
-        const ang = utils.radiansFromCenter(p.anchor, p.paddle);
-        this.box.setAngle(p.paddle.id, ang);
-      
+        this.box.setLinearVelocity(p.paddle.id, 0, 0);
+      }
     });
 
   }
@@ -102,7 +84,7 @@ const game = new BoxGame({
   //add everything to box from the boxData
 boxData.entities.forEach(function(props){
   if(props.id === 'ball'){
-    props.img = game.resourceManager.loadImage('images/head.png');
+    props.img = game.resourceManager.loadImage('images/meatball.png');
     game.ball = new Ball(props);
     game.addBody(game.ball);
   } else {
@@ -149,7 +131,9 @@ const players = c.map((cpt, idx) => {
   return {
     pt: cpt,
     color: colors[idx],
-    angle: angs[idx]
+    angle: angs[idx],
+    direction: 0,
+    position: Math.PI / 2
   }
 });
 
@@ -173,21 +157,22 @@ players.forEach((p, idx) => {
   console.log('creating player', p);
   const ppt = {x: p.pt[0], y: p.pt[1]};
 
-  const newBallPt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 55}, p.angle);
+  const newFacePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 55}, p.angle);
   const cir = new Face({
-    x: newBallPt.x,
-    y: newBallPt.y,
+    x: newFacePt.x,
+    y: newFacePt.y,
     radius: 50,
     staticBody: true,
     restitution: 2,
     fillStyle: p.color,
     king: true,
     ball: game.ball,
+    playerId: idx,
   });
   game.addBody(cir);
   p.face = cir;
 
-  const newPaddlePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 280}, p.angle);
+  const newPaddlePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + distFromAnchor}, p.angle);
   const paddle = new entities.Rectangle({
     x: newPaddlePt.x,
     y: newPaddlePt.y,
@@ -196,7 +181,8 @@ players.forEach((p, idx) => {
     restitution: 1,
     fillStyle: p.color,
     paddle: true,
-    drawCenter: false
+    drawCenter: false,
+    playerId: idx,
   });
   game.addBody(paddle);
   p.paddle = paddle;
@@ -205,7 +191,8 @@ players.forEach((p, idx) => {
     x: p.pt[0],
     y: p.pt[1],
     radius: 0.1,
-    staticBody: true
+    staticBody: true,
+    playerId: idx,
   });
   game.addBody(p.anchor);
 
@@ -261,7 +248,7 @@ game.players = players;
 boxData.joints.forEach(function(props){
   var joint;
   if(props.type === 'Revolute'){
-    joint = new Revolute(props);
+    //joint = new Revolute(props);
   }
 
   if(joint){

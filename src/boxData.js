@@ -156,25 +156,12 @@ module.exports = {
     },
     {
       "x": 960,
-      "y": 540,
-      "halfWidth": 9,
-      "halfHeight": 20,
-      "staticBody": false,
-      "zone": false,
-      "type": "Rectangle",
-      "fillStyle": "#EECEB3",
-      "strokeStyle": "red",
-      "lineWidth" : 5,
-      "id": "neck"
-    },
-    {
-      "x": 960,
       "y": 527,
       "radius": 24,
       "staticBody": false,
       "zone": false,
       "type": "Circle",
-      "fillStyle": "rgba(239,208,207,0.2)",
+      "restitution": 1.1,
       "id": "ball"
     },
   ],
