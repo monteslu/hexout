@@ -21,6 +21,8 @@ function handleInput(im) {
   handleDirection(this, 'Q', 'W', 5);
   handleDirection(this, 'C', 'V', 4);
   handleDirection(this, 'N', 'M', 3);
+  handleDirection(this, 'T', 'Y', 0);
+  handleDirection(this, 'O', 'P', 1);
 
 
   if(im.keyActions[keys.UP].isPressed()){
@@ -39,9 +41,9 @@ function handleInput(im) {
     this.box.applyTorque('ball', speed  * 100);
   }
 
-  if(im.mouseAction.isPressed()){
-    this.box.applyImpulse('ball', radiansFromCenter(this.entities.ball, scalePoints(im.mouseAction.position, 1/this.box.scale)), speed);
-  }
+  // if(im.mouseAction.isPressed()){
+  //   this.box.applyImpulse('ball', radiansFromCenter(this.entities.ball, scalePoints(im.mouseAction.position, 1/this.box.scale)), speed);
+  // }
 }
 
 export default handleInput;

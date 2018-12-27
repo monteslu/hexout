@@ -1,4 +1,4 @@
-const wallRestitution = 2.5;
+const wallRestitution = 1;
 
 module.exports = {
   "entities": [
@@ -32,6 +32,7 @@ module.exports = {
       "type": "Polygon",
       "id": "uleftw",
       "hidden": true,
+      "wall": true,
       "restitution": wallRestitution
     },
     {
@@ -64,6 +65,7 @@ module.exports = {
       "type": "Polygon",
       "restitution": wallRestitution,
       "hidden": true,
+      "wall": true,
       "id": "lleftw"
     },
     {
@@ -129,6 +131,7 @@ module.exports = {
       "restitution": wallRestitution,
       "id": "lrighttw",
       "hidden": true,
+      "wall": true,
     },
     {
       "x": 960,
@@ -141,6 +144,7 @@ module.exports = {
       "id": "bottomw",
       "restitution": wallRestitution,
       "hidden": true,
+      "wall": true,
     },
     {
       "x": 960,
@@ -153,150 +157,10 @@ module.exports = {
       "id": "topw",
       "restitution": wallRestitution,
       "hidden": true,
-    },
-    {
-      "x": 960,
-      "y": 527,
-      "radius": 24,
-      "staticBody": false,
-      "zone": false,
-      "type": "Circle",
-      "restitution": 1.1,
-      "id": "ball"
+      "wall": true,
     },
   ],
   "joints": [
-    {
-      "bodyId1": "ball",
-      "bodyId2": "neck",
-      "type": "Revolute",
-      "id": "balljoint",
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -0.5,
-        "upperAngle": 0.5
-      }
-    },
-    {
-      "bodyId1": "ruleg",
-      "bodyId2": "torso",
-      "type": "Revolute",
-      "id": "rhip",
-      "bodyPoint1": {
-        "x": 210,
-        "y": 273
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -0.785385,
-        "upperAngle": 1.570796
-      }
-    },
-    {
-      "bodyId1": "llleg",
-      "bodyId2": "luleg",
-      "type": "Revolute",
-      "id": "lknee",
-      "bodyPoint1": {
-        "x": 157,
-        "y": 364
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -0.185385,
-        "upperAngle": 1.570796
-      }
-    },
-    {
-      "bodyId1": "rlleg",
-      "bodyId2": "ruleg",
-      "type": "Revolute",
-      "id": "rknee",
-      "bodyPoint1": {
-        "x": 231,
-        "y": 364
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -1.570796,
-        "upperAngle": 0.185385
-      }
-    },
-    {
-      "bodyId1": "lhand",
-      "bodyId2": "llarm",
-      "type": "Revolute",
-      "id": "lhand",
-      "bodyPoint1": {
-        "x": 125,
-        "y": 302
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -1.6,
-        "upperAngle": 1.6
-      }
-    },
-    {
-      "bodyId1": "rhand",
-      "bodyId2": "rlarm",
-      "type": "Revolute",
-      "id": "rhand",
-      "bodyPoint1": {
-        "x": 268,
-        "y": 290
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -1.6,
-        "upperAngle": 1.6
-      }
-    },
-    {
-      "bodyId1": "lfoot",
-      "bodyId2": "llleg",
-      "type": "Revolute",
-      "id": "lfoot",
-      "bodyPoint1": {
-        "x": 147,
-        "y": 426
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -1.070796,
-        "upperAngle": 0.785385
-      }
-    },
-    {
-      "bodyId1": "rfoot",
-      "bodyId2": "rlleg",
-      "type": "Revolute",
-      "id": "rfoot",
-      "bodyPoint1": {
-        "x": 238,
-        "y": 427
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": -0.785385,
-        "upperAngle": 1.070796
-      }
-    },
-    {
-      "bodyId1": "thumb",
-      "bodyId2": "lhand",
-      "type": "Revolute",
-      "id": "thumb",
-      "bodyPoint1": {
-        "x": 127,
-        "y": 315
-      },
-      "jointAttributes": {
-        "enableLimit": true,
-        "lowerAngle": 0.1,
-        "upperAngle": -0.1
-      }
-    }
   ],
   "canvas": {
     "height": 600,
