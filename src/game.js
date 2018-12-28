@@ -8,12 +8,11 @@ import colors from './colors';
 import Brick from './Brick';
 import Face from './Face';
 import handleInput from './handleInput';
+import bricks from './bricks';
 
 const { BoxGame, entities, joints } = box2d;
-const { Revolute } = joints;
 const { radiansFromCenter, scalePoints, rotateRadiansAroundCenter, distance, radiansToDegrees } = utils;
 
-const speed = 30;
 const playerSpeed = 0.0027;
 const distFromAnchor = 295;
 const ballSpeed = 400;
@@ -44,19 +43,7 @@ const game = new BoxGame({
   draw: draw,
   initInput: function(im){
     im.addArrowKeyActions();
-
-    im.addKeyAction('A');
-    im.addKeyAction('D');
-    im.addKeyAction('Q');
-    im.addKeyAction('W');
-    im.addKeyAction('C');
-    im.addKeyAction('V');
-    im.addKeyAction('N');
-    im.addKeyAction('M');
-    im.addKeyAction('T');
-    im.addKeyAction('Y');
-    im.addKeyAction('O');
-    im.addKeyAction('P');
+    im.addKeyAction(['A','D','Q','W','C','V','N','M','T','Y','O','P']);
   },
   handleInput,
   update: function(millis) {
@@ -100,13 +87,28 @@ const game = new BoxGame({
               //   this.box.applyImpulseDegrees(this.ball.id, paddleAngle + impactDelta, 10);
               // }
             }
+            
+            if (ent.wall) {
+              this.ball.wallHits++;
+            } else {
+              this.ball.wallHits = 0;
+            }
           }
           
         });
         const direction = radiansFromCenter({x: 0, y: 0}, this.ball.linearVelocity);
         this.removeBody(this.ball);
         this.addBody(this.ball);
-        this.box.applyForce(this.ball.id, direction + getRandomAngleOffset(), ballSpeed);
+        const angleOffset = getRandomAngleOffset();
+        // console.log('ballhits', this.ball.wallHits, angleOffset, angleOffset * this.ball.wallHits);
+        const bricksLeft = Object.keys(game.entities).reduce((acc, k) => {
+          if(game.entities[k].brick) {
+              return acc + 1;
+            }
+          return acc;
+        }, 0);
+        const newSpeed = ballSpeed + (330 - bricksLeft); // speed up as bricks go away
+        this.box.applyForce(this.ball.id, direction + angleOffset + (angleOffset * this.ball.wallHits), ballSpeed);
 
       } else {
         //regulate ball speed;
@@ -139,7 +141,7 @@ const game = new BoxGame({
         }
 
         //const newPaddlePt = rotateRadiansAroundCenter(p.anchor, {x: p.anchor.x, y: p.anchor.y + (distFromAnchor / 30)}, p.angle + p.position - (Math.PI / 2));
-        const newPaddlePt = rotateRadiansAroundCenter({x: p.pt[0], y: p.pt[1]}, {x: p.pt[0], y: p.pt[1] + distFromAnchor}, p.angle + p.position - (Math.PI / 2));
+        const newPaddlePt = rotateRadiansAroundCenter(p.pt, {x: p.pt.x, y: p.pt.y + distFromAnchor}, p.angle + p.position - (Math.PI / 2));
         
         const paddleOps = p.paddleOps; // Object.assign({}, p.paddleOps, newPaddlePt);
         paddleOps.x = newPaddlePt.x;
@@ -155,8 +157,10 @@ const game = new BoxGame({
 
         paddleOps.points = [
           {x: paddleOps.halfWidth, y: -paddleOps.halfHeight},
-          {x: paddleOps.halfWidth * 0.6, y: paddleOps.halfHeight},
-          {x: -paddleOps.halfWidth * 0.6, y: paddleOps.halfHeight},
+          {x: paddleOps.halfWidth * 0.7, y: paddleOps.halfHeight / 2},
+          {x: paddleOps.halfWidth * 0.4, y: paddleOps.halfHeight},
+          {x: -paddleOps.halfWidth * 0.4, y: paddleOps.halfHeight},
+          {x: -paddleOps.halfWidth * 0.7, y: paddleOps.halfHeight / 2},
           {x: -paddleOps.halfWidth, y: -paddleOps.halfHeight},
         ];
 
@@ -200,7 +204,8 @@ const ballProps = {
   ptRadius: 10,
   radius: 10,
   points: [0,1,2,3,4,5,6,7,8],
-  id: 'ball'
+  id: 'ball',
+  wallHits: 0
 };
 
 ballProps.points = ballProps.points.map((p, idx) => {
@@ -243,7 +248,7 @@ let c = [
 
 const players = c.map((cpt, idx) => {
   return {
-    pt: cpt,
+    pt: {x: cpt[0], y: cpt[1]},
     color: colors[idx],
     angle: angs[idx],
     direction: 0,
@@ -254,11 +259,11 @@ const players = c.map((cpt, idx) => {
 
 console.log('players', players);
 
-const origin = {x: players[0].pt[0], y: players[0].pt[1]};
+const origin = players[0].pt;
 
 players.forEach((p, idx) => {
   console.log('creating player', p);
-  const ppt = {x: p.pt[0], y: p.pt[1]};
+  const ppt = p.pt;
 
   const newFacePt = rotateRadiansAroundCenter(ppt, {x: ppt.x, y: ppt.y + 55}, p.angle);
   const cir = new Face({
@@ -279,10 +284,11 @@ players.forEach((p, idx) => {
   p.paddleOps = {
     x: newPaddlePt.x,
     y: newPaddlePt.y,
-    halfWidth: 60,
-    halfHeight: 15,
+    halfWidth: 55,
+    halfHeight: 12,
     restitution: 1,
     fillStyle: p.color,
+    strokeStyle: p.color,
     paddle: true,
     drawCenter: false,
     playerId: idx,
@@ -306,8 +312,8 @@ players.forEach((p, idx) => {
   p.paddles = [paddle];
 
   p.anchor = new entities.Circle({
-    x: p.pt[0],
-    y: p.pt[1],
+    x: p.pt.x,
+    y: p.pt.y,
     radius: 0.1,
     staticBody: true,
     playerId: idx,
@@ -340,8 +346,8 @@ players.forEach((p, idx) => {
     ops.y = pt.y;
   
   
-    ops.x += (ppt.x - players[0].pt[0]);
-    ops.y += (ppt.y - players[0].pt[1]);
+    ops.x += (ppt.x - players[0].pt.x);
+    ops.y += (ppt.y - players[0].pt.y);
 
     ops.points = [
       {x: ops.halfWidth, y: -ops.halfHeight},

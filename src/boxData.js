@@ -99,6 +99,7 @@ module.exports = {
       "restitution": wallRestitution,
       "id": "urighttw",
       "hidden": true,
+      "wall": true,
     },
     {
       "points": [
