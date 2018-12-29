@@ -52,6 +52,8 @@ function draw(ctx, scale) {
     }
   });
 
+  this.ball.draw(ctx, scale);
+
   
 }
 

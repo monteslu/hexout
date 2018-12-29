@@ -10,8 +10,8 @@ export default class Face extends Circle {
     const scaledY = this.y * scale;
     const ogLineWidth = ctx.lineWidth;
     ctx.lineWidth = 2;
-    ctx.fillStyle = this.fillStyle;
-    ctx.strokeStyle = this.strokeStyle;
+    ctx.fillStyle = this.dead ? this.deadFillStyle : this.fillStyle;
+    ctx.strokeStyle = this.dead ? this.fillStyle : this.strokeStyle;
     ctx.beginPath();
     ctx.arc(scaledX, scaledY, this.radius * scale, 0, Math.PI * 2, true);
     ctx.closePath();
@@ -54,13 +54,7 @@ export default class Face extends Circle {
       ctx.fill();
     } else {
       ctx.lineWidth = 2;
-      ctx.fillStyle = "rgba(0,0,0,0.75)";
       ctx.strokeStyle = this.fillStyle;
-      ctx.beginPath();
-      ctx.arc(scaledX, scaledY, this.radius * scale, 0, Math.PI * 2, true);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
 
       // ctx.strokeStyle = "black";
       ctx.beginPath();

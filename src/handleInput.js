@@ -4,8 +4,13 @@ import scalePoints from 'frozenjs/utils/scalePoints';
 
 const speed = 10;
 
-function handleDirection(game, leftKey, rightKey, playerId) {
+function handleDirection(game, fireKey ,leftKey, rightKey, playerId) {
   let lPressed = game.inputManager.keyActions[leftKey].isPressed();
+  if(game.inputManager.keyActions[fireKey].isPressed()) {
+    game.players[playerId].firePressed = true;
+  } else {
+    game.players[playerId].firePressed = false;
+  }
   if(lPressed || game.inputManager.keyActions[rightKey].isPressed()) {
     if(lPressed) {
       return game.players[playerId].direction = -1;
@@ -17,12 +22,12 @@ function handleDirection(game, leftKey, rightKey, playerId) {
 }
 
 function handleInput(im) {
-  handleDirection(this, keys.LEFT, keys.RIGHT, 2);
-  handleDirection(this, 'Q', 'W', 5);
-  handleDirection(this, 'C', 'V', 4);
-  handleDirection(this, 'N', 'M', 3);
-  handleDirection(this, 'T', 'Y', 0);
-  handleDirection(this, 'O', 'P', 1);
+  handleDirection(this, keys.SLASH, keys.LEFT, keys.RIGHT, 2);
+  handleDirection(this, 'Q', 'W', 'E', 5);
+  handleDirection(this, 'X', 'C', 'V', 4);
+  handleDirection(this, 'B', 'N', 'M', 3);
+  handleDirection(this, 'T', 'Y', 'U', 0);
+  handleDirection(this, 'O', 'P', keys.OPEN_BRACKET, 1);
 
 
   if(im.keyActions[keys.UP].isPressed()){

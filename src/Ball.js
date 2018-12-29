@@ -2,6 +2,8 @@ import Circle from 'frozenjs/box2d/entities/Circle';
 import radiansFromCenter from 'frozenjs/utils/radiansFromCenter';
 import rotateRadiansAroundCenter from 'frozenjs/utils/rotateRadiansAroundCenter';
 
+const origin = {x: 0, y: 0};
+
 export default class Ball extends Circle {
   draw(ctx, scale) {
     // scale = scale || this.scale || 1;
@@ -26,12 +28,14 @@ export default class Ball extends Circle {
       const tailDisruption = 0.06;
       const tailDist = 0.85;
 
-      const rads = radiansFromCenter({x: 0, y: 0}, this.linearVelocity);
+      const rads = radiansFromCenter(origin, this.linearVelocity);
       const center = {x, y};
-      const tails = [1, 2, 3, 4, 5].map((t, idx) => {
+      const tailSegments = this.caught ? [1, 2] : [1, 2, 3, 4, 5];
+      const tails = tailSegments.map((t, idx) => {
         return rotateRadiansAroundCenter(center, {x, y: y - (radius * (tailDist * t))}, rads + Math.PI + (t % 2 ? tailDisruption : -tailDisruption));
       });
 
+      
       tails.forEach((t, idx) => {
         ctx.fillStyle = 'rgba(255,255,0,0.5)';
         ctx.beginPath();
@@ -39,7 +43,7 @@ export default class Ball extends Circle {
         ctx.closePath();
         ctx.fill();
       });
-
+      
 
 
     }

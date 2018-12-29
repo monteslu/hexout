@@ -1,4 +1,4 @@
-import { box2d, utils } from 'frozenjs';
+import { box2d, utils, keys } from 'frozenjs';
 
 import boxData from './boxData';
 import draw from './draw';
@@ -8,7 +8,6 @@ import colors from './colors';
 import Brick from './Brick';
 import Face from './Face';
 import handleInput from './handleInput';
-import bricks from './bricks';
 
 const { BoxGame, entities, joints } = box2d;
 const { radiansFromCenter, scalePoints, rotateRadiansAroundCenter, distance, radiansToDegrees } = utils;
@@ -32,6 +31,7 @@ const ang1 = Math.asin(sint1);
 const sint2 = sideW / hexSide;
 const ang2 = Math.asin(sint2)
 console.log('angle in radians', ang1, ang2);
+const centerPoint = {x: 0, y: 0};
 
 
 //setup a GameCore instance
@@ -43,12 +43,27 @@ const game = new BoxGame({
   draw: draw,
   initInput: function(im){
     im.addArrowKeyActions();
-    im.addKeyAction(['A','D','Q','W','C','V','N','M','T','Y','O','P']);
+    im.addKeyAction(['A','D', 
+      'Q','W','E',
+      'X','C','V',
+      'B','N','M',
+      'T','Y','U',
+      'O','P', keys.OPEN_BRACKET,
+      keys.SLASH]);
   },
   handleInput,
+  getBricksLeft: function() {
+    return Object.keys(this.entities).reduce((acc, k) => {
+      if(this.entities[k].brick) {
+          return acc + 1;
+        }
+      return acc;
+    }, 0);
+  },
   update: function(millis) {
     this.updateBox(millis);
     if(this.ball) {
+      
       if(this.ball.collisions && this.ball.collisions.length) {
         //console.log('ball', this.ball.collisions);
         this.ball.collisions.forEach((et) => {
@@ -76,16 +91,27 @@ const game = new BoxGame({
 
               
             } else if (ent.paddle) {
+              
               const p = this.players[ent.playerId];
+              
               const ballfromAnchor = distance(p.anchor, this.ball);
+              const paddleFromAnchor = distance(p.anchor, ent);
+
+              //ignore hits to bottom of paddle
+              if(ballfromAnchor > paddleFromAnchor) {
+                this.ball.hitPlayer = p;
+                this.ball.hitPaddle = ent;
+                if(p.firePressed) {
+                  this.ball.caught = true;
+                  this.ball.caughtPaddlePosition = p.position;
+                  this.ball.caughtPlayerId = ent.playerId;
+                  this.ball.caughtPosition = {x: this.ball.x, y: this.ball.y};
+                }
+              }
               //console.log('%c Oh my heavens! ', 'background: #222; color: #bada55');
               console.log('%cpaddlehit ' + ent.playerId, 'font-size: 1.5em; background: #222; color: ' + players[ent.playerId].color);
-              // if(ballfromAnchor > ent.distance) { //hit front of paddle
-              //   const paddleAngle = p.position + p.angle;
-              //   const impactDelta = radiansFromCenter(p.anchor, ent) - radiansFromCenter(p.anchor, this.ball);
-              //   console.log('hit', radiansToDegrees(paddleAngle), radiansToDegrees(impactDelta), 10);
-              //   this.box.applyImpulseDegrees(this.ball.id, paddleAngle + impactDelta, 10);
-              // }
+
+
             }
             
             if (ent.wall) {
@@ -96,33 +122,59 @@ const game = new BoxGame({
           }
           
         });
-        const direction = radiansFromCenter({x: 0, y: 0}, this.ball.linearVelocity);
+        
+
+        function fireBall(){
+
+        }
+
         this.removeBody(this.ball);
-        this.addBody(this.ball);
-        const angleOffset = getRandomAngleOffset();
-        // console.log('ballhits', this.ball.wallHits, angleOffset, angleOffset * this.ball.wallHits);
-        const bricksLeft = Object.keys(game.entities).reduce((acc, k) => {
-          if(game.entities[k].brick) {
-              return acc + 1;
-            }
-          return acc;
-        }, 0);
-        const newSpeed = ballSpeed + (330 - bricksLeft); // speed up as bricks go away
-        this.box.applyForce(this.ball.id, direction + angleOffset + (angleOffset * this.ball.wallHits), ballSpeed);
+        this.ball.angularVelocity = null;
+        this.ball.prevLinearVelocity = this.ball.linearVelocity;
+        this.ball.linearVelocity = null;
+        if(this.ball.caught) {
+          const caughtPlayer = this.players[this.ball.caughtPlayerId];
+          const positionDelta = caughtPlayer.position - this.ball.caughtPaddlePosition + (Math.PI * 2);
+          const newBallLoc = rotateRadiansAroundCenter(caughtPlayer.anchor, this.ball.caughtPosition, positionDelta);
+          console.log('caught', positionDelta, newBallLoc);
+          
+          this.ball.x = newBallLoc.x;
+          this.ball.y = newBallLoc.y;
+          if(caughtPlayer.firePressed) {
+            //still caught
+          } else {
+            this.ball.caught = false;
+            const bricksLeft = this.getBricksLeft();
+            const newSpeed = ballSpeed + (330 - bricksLeft); // speed up as bricks go away
+            this.addBody(this.ball);
+            const paddleAngle = radiansFromCenter(this.ball.hitPlayer.anchor, this.ball.hitPlayer.paddles[0]);
+            const ballAngle = radiansFromCenter(this.ball.hitPlayer.anchor, this.ball);
+            const delta = paddleAngle - ballAngle;
+            this.box.applyForce(this.ball.id, paddleAngle - (delta * 5), newSpeed);
+            this.ball.hitPaddle = null;
+          }
+        } else {
+          const bricksLeft = this.getBricksLeft();
+          const newSpeed = ballSpeed + (330 - bricksLeft); // speed up as bricks go away
+          const angleOffset = getRandomAngleOffset();
+          this.addBody(this.ball);
+          if(this.ball.hitPaddle) {
+            const paddleAngle = radiansFromCenter(this.ball.hitPlayer.anchor, this.ball.hitPlayer.paddles[0]);
+            const ballAngle = radiansFromCenter(this.ball.hitPlayer.anchor, this.ball);
+            const delta = paddleAngle - ballAngle;
+            this.box.applyForce(this.ball.id, paddleAngle - (delta * 5) + angleOffset, newSpeed);
+            this.ball.hitPaddle = null;
+          } else {
+            // console.log('ballhits', this.ball.wallHits, angleOffset, angleOffset * this.ball.wallHits);
+            const direction = radiansFromCenter(centerPoint, this.ball.prevLinearVelocity);
+            this.box.applyForce(this.ball.id, direction + angleOffset + (angleOffset * this.ball.wallHits), newSpeed);
+          }
+          
+        }
+        
 
       } else {
         //regulate ball speed;
-        // const speedMin = 1;
-        // const speedMax = 3;
-        // const currentSpeed = Math.abs(this.ball.linearVelocity.x) + Math.abs(this.ball.linearVelocity.y);
-        //const force = 0.1;
-        //const direction = radiansFromCenter({x: 0, y: 0}, this.ball.linearVelocity);
-        // if(currentSpeed > speedMax) {
-        //  this.box.applyForce(this.ball.id, direction, force);
-        // }
-        // else if(currentSpeed < speedMin) {
-        //   this.box.applyForce(this.ball.id, direction, force);
-        // }
     
       }
     }
@@ -146,14 +198,7 @@ const game = new BoxGame({
         const paddleOps = p.paddleOps; // Object.assign({}, p.paddleOps, newPaddlePt);
         paddleOps.x = newPaddlePt.x;
         paddleOps.y = newPaddlePt.y;
-        // paddleOps.points = [
-        //   {x: paddleOps.halfWidth, y: -paddleOps.halfHeight},
-        //   {x: paddleOps.halfWidth * (0.75), y: 0},
-        //   {x: paddleOps.halfWidth * (0.25), y: paddleOps.halfHeight},
-        //   {x: -paddleOps.halfWidth * (0.25), y: paddleOps.halfHeight},
-        //   {x: -paddleOps.halfWidth * (0.75), y: 0},
-        //   {x: -paddleOps.halfWidth, y: -paddleOps.halfHeight},
-        // ];
+        
 
         paddleOps.points = [
           {x: paddleOps.halfWidth, y: -paddleOps.halfHeight},
@@ -164,10 +209,17 @@ const game = new BoxGame({
           {x: -paddleOps.halfWidth, y: -paddleOps.halfHeight},
         ];
 
+        if(p.firePressed) {
+          paddleOps.strokeStyle = p.colorComplement;
+          paddleOps.lineWidth = 5;
+        } else {
+          paddleOps.strokeStyle = p.color;
+          paddleOps.lineWidth = 1;
+        }
         
       
         paddleOps.points = p.paddleOps.points.map((oppt) => {
-          return rotateRadiansAroundCenter({x: 0, y: 0}, oppt, p.angle + p.position - (Math.PI / 2));
+          return rotateRadiansAroundCenter(centerPoint, oppt, p.angle + p.position - (Math.PI / 2));
         });
         p.update++;
         paddleOps.id = idx + 'paddle' + p.update; 
@@ -182,15 +234,7 @@ const game = new BoxGame({
           const first = p.paddles.shift();
           game.removeBody(first);
         }
-        //p.paddle2 = paddle2;
-
-
-
-        // this.box.setPosition(p.paddle.id, newPaddlePt.x, newPaddlePt.y);
-        // this.box.setAngle(p.paddle.id, p.angle + p.position - (Math.PI / 2));
-        // this.box.setAngularVelocity(p.paddle.id, 0);
-        // this.box.setLinearVelocity(p.paddle.id, 0, 0);
-
+        
 
       }
     });
@@ -205,11 +249,12 @@ const ballProps = {
   radius: 10,
   points: [0,1,2,3,4,5,6,7,8],
   id: 'ball',
-  wallHits: 0
+  wallHits: 0,
+  hidden: true
 };
 
 ballProps.points = ballProps.points.map((p, idx) => {
-  const newPt = rotateRadiansAroundCenter({x: 0, y: 0}, {x: 0, y: ballProps.ptRadius}, ((Math.PI * 2) / ballProps.points.length) * idx);
+  const newPt = rotateRadiansAroundCenter(centerPoint, {x: 0, y: ballProps.ptRadius}, ((Math.PI * 2) / ballProps.points.length) * idx);
   return newPt
 });
 
@@ -249,7 +294,8 @@ let c = [
 const players = c.map((cpt, idx) => {
   return {
     pt: {x: cpt[0], y: cpt[1]},
-    color: colors[idx],
+    color: colors.rgb(idx),
+    colorComplement: colors.complement(idx),
     angle: angs[idx],
     direction: 0,
     position: Math.PI / 2,
@@ -273,6 +319,7 @@ players.forEach((p, idx) => {
     staticBody: true,
     restitution: 2,
     fillStyle: p.color,
+    deadFillStyle: colors.rgba(idx, 0.25),
     king: true,
     ball: game.ball,
     playerId: idx,
@@ -295,7 +342,8 @@ players.forEach((p, idx) => {
     density: 100,
     staticBody: true,
     id: idx + 'paddle0',
-    hidden: true
+    hidden: true,
+    drawLocation: false,
   };
   p.paddleOps.points = [
     {x: p.paddleOps.halfWidth, y: -p.paddleOps.halfHeight},
@@ -305,7 +353,7 @@ players.forEach((p, idx) => {
   ];
 
   p.paddleOps.points = p.paddleOps.points.map((oppt) => {
-    return rotateRadiansAroundCenter({x: 0, y: 0}, oppt, p.angle);
+    return rotateRadiansAroundCenter(centerPoint, oppt, p.angle);
   });
   const paddle = new entities.Polygon(p.paddleOps);
   game.addBody(paddle);
@@ -357,7 +405,7 @@ players.forEach((p, idx) => {
     ];
 
     ops.points = ops.points.map((oppt) => {
-      return rotateRadiansAroundCenter({x: 0, y: 0}, oppt, p.angle);
+      return rotateRadiansAroundCenter(centerPoint, oppt, p.angle);
     });
 
     ops.prex = ops.x;
