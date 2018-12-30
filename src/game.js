@@ -14,8 +14,9 @@ const { radiansFromCenter, scalePoints, rotateRadiansAroundCenter, distance, rad
 
 const playerSpeed = 0.0027;
 const distFromAnchor = 295;
-const ballSpeed = 400;
+const ballSpeed = 1400;
 const randomAngleSpread = ((Math.PI * 2) / 360) * 1.75;
+const BRICK_DEATH_ANIM = 2500;
 
 function getRandomAngleOffset() {
   return Math.round(Math.random()) ? -(Math.random() * randomAngleSpread) : Math.random() * randomAngleSpread;
@@ -41,6 +42,12 @@ const game = new BoxGame({
   canvasPercentage: 1,
   boxOptions: {resolveCollisions: true, gravityY: 0},
   draw: draw,
+  loadResources: function(rm) {
+    this.explosions = [];
+    this.explosions.push(rm.loadSound('sounds/explosion5'));
+    this.explosions.push(rm.loadSound('sounds/explosion7'));
+    this.explosions.push(rm.loadSound('sounds/explosion8'));
+  },
   initInput: function(im){
     im.addArrowKeyActions();
     im.addKeyAction(['A','D', 
@@ -62,6 +69,19 @@ const game = new BoxGame({
   },
   update: function(millis) {
     this.updateBox(millis);
+
+    Object.keys(this.entities).forEach((k) => {
+      const ent = this.entities[k];
+      if(ent.brickPiece) {
+        ent.life = ent.life - millis;
+        if(ent.life < 0) {
+          this.removeBody(ent);
+        } else {
+          ent.fillStyle = colors.rgba(ent.playerId, ent.life / BRICK_DEATH_ANIM * 0.6);
+        }
+      }
+    })
+
     if(this.ball) {
       
       if(this.ball.collisions && this.ball.collisions.length) {
@@ -71,6 +91,32 @@ const game = new BoxGame({
           if(ent) {
             if(ent.brick) {
               this.removeBody(et);
+              //
+              console.log('brick kill', ent);
+              const lilOps = {
+                x: ent.x * 30,
+                y: ent.y * 30,
+                brickPiece: true,
+                life: BRICK_DEATH_ANIM,
+                staticBody: false,
+                density: 0.001,
+                playerId: ent.playerId,
+                fillStyle: colors.rgb(ent.playerId),
+                drawCenter: false,
+                drawLocation: false
+              };
+              [0,1,2,3,4,5].forEach((b) => {
+                const lilbOps = {
+                  halfHeight: ent.halfHeight / ((Math.random() * 2) + 2.5),
+                  halfWidth: ent.halfWidth / ((Math.random() * 2) + 2.5),
+                };
+                const lilB = new entities.Rectangle(Object.assign({}, lilOps, lilbOps));
+                this.addBody(lilB);
+                this.box.setAngle(lilB.id, Math.random() * (Math.PI * 2));
+                this.box.applyImpulse(lilB.id, Math.random() * (Math.PI * 2), 30);
+              });
+              const randExplosion = this.explosions[Math.floor(Math.random() * this.explosions.length)];
+              randExplosion.play();
             }
             else if (ent.king) {
               console.log('king kill', ent);
