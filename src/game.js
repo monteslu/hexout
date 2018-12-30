@@ -14,7 +14,7 @@ const { radiansFromCenter, scalePoints, rotateRadiansAroundCenter, distance, rad
 
 const playerSpeed = 0.0027;
 const distFromAnchor = 295;
-const ballSpeed = 1400;
+const ballSpeed = 400;
 const randomAngleSpread = ((Math.PI * 2) / 360) * 1.75;
 const BRICK_DEATH_ANIM = 2500;
 
@@ -47,6 +47,7 @@ const game = new BoxGame({
     this.explosions.push(rm.loadSound('sounds/explosion5'));
     this.explosions.push(rm.loadSound('sounds/explosion7'));
     this.explosions.push(rm.loadSound('sounds/explosion8'));
+    this.scream = rm.loadSound('sounds/scream');
   },
   initInput: function(im){
     im.addArrowKeyActions();
@@ -120,6 +121,7 @@ const game = new BoxGame({
             }
             else if (ent.king) {
               console.log('king kill', ent);
+              this.scream.play();
               ent.dead = true;
 
               Object.keys(this.entities).forEach((k) => {
