@@ -261,12 +261,13 @@ players.forEach((p, idx) => {
   });
 
   const shufPbricks = lib.shuffle(pBricks);
-  shufPbricks[0].powerUp = true;
-  shufPbricks[1].powerUp = true;
-  shufPbricks[2].powerDown = true;
-  shufPbricks[3].powerDown = true;
-  shufPbricks[4].powerDown = true;
-  shufPbricks[5].powerUp = true;
+  [0,1,2,3,4,5,6,7,8,9].forEach((num) => {
+    if(num % 2) {
+      shufPbricks[num].powerUp = true;
+    } else {
+      shufPbricks[num].powerDown = true;
+    }
+  });
 });
 
 game.measurements = {fullW, fullH, hexSide, sideW, sint1, ang1, sint2, ang2, scaleW: fullW / game.box.scale, scaleH: fullH / game.box.scale};

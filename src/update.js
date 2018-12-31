@@ -10,7 +10,7 @@ const { radiansFromCenter, rotateRadiansAroundCenter, distance } = utils;
 
 const playerSpeed = 0.0027;
 const BRICK_DEATH_ANIM = 2500;
-const SMALL_TIME = 10000;
+const SMALL_TIME = 15000;
 
 const centerPoint = {x: 0, y: 0};
 
@@ -66,32 +66,43 @@ function update(millis) {
       }
     } else if(ent.power) {
       if(ent.x < 0 || ent.y < 0 || ent.x > scaleW || ent.y > scaleH ) {
-        console.log('KILL POWER', ent);
+        // console.log('KILL POWER', ent);
         this.removeBody(ent);
       }
       if(ent.collisions && ent.collisions.length) {
-        console.log('GOT THE POWER', ent);
-        this.removeBody(ent);
-        if(ent.powerUp) {
-          this.sounds.powerup.play();
-          //TODO break this out into an interace
-          const pBricks = lib.shuffle(Object.keys(this.entities).reduce((acc, b) => {
-            const maybeBrick = this.entities[b];
-            if(maybeBrick.brick && maybeBrick.playerId === ent.playerId) {
-              acc.push(maybeBrick);
-            }
-            return acc;
-          }, []));
-          [0,1,2,3].forEach((idx) => {
-            if(pBricks[idx]) {
-              pBricks[idx].hitPoints ++;
-            }
-          });
+        let hitPaddle = false; //TODO make powerups not hit eachother
+        ent.collisions.forEach((et) => {
+          if(this.entities[et.id].paddle) {
+            hitPaddle = true;
+          }
+        });
+        if(hitPaddle) {
+          console.log('GOT THE POWER', ent);
+          this.removeBody(ent);
+          if(ent.powerUp) {
+            this.sounds.powerup.play();
+            //TODO break this out into an interace
+            const pBricks = lib.shuffle(Object.keys(this.entities).reduce((acc, b) => {
+              const maybeBrick = this.entities[b];
+              if(maybeBrick.brick && maybeBrick.playerId === ent.playerId) {
+                acc.push(maybeBrick);
+              }
+              return acc;
+            }, []));
+            [0,1,2,3].forEach((idx) => {
+              if(pBricks[idx]) {
+                pBricks[idx].hitPoints ++;
+              }
+            });
+          }
+          else {
+            this.sounds.powerdown.play();
+            this.players[ent.playerId].smallTime = SMALL_TIME;
+          }
+        } else {
+          console.log('hit other paddle', ent);
         }
-        else {
-          this.sounds.powerdown.play();
-          this.players[ent.playerId].smallTime = SMALL_TIME;
-        }
+        
       }
     }
   });
@@ -112,14 +123,14 @@ function update(millis) {
               if(ent.powerUp || ent.powerDown && this.ball.hitPlayer) {
                 const p = this.ball.hitPlayer;
                 //console.log('hitplayer', p, p.playerId);
-                if(p && !p.dead && ent.playerId !== p.playerId) {
-                  const powerAngle = radiansFromCenter(ent, p.anchor);
+                if(p && !p.dead && ent.playerId !== p.playerId && !p.dead) {
+                  const padAnchor = {x: (p.paddles[0].x + p.anchor.x) / 2, y: (p.paddles[0].y + p.anchor.y) / 2};
+                  const powerAngle = radiansFromCenter(ent, padAnchor);
                   const mask = (1 << (8 + p.playerId));
                   //console.log('power!', ent, p, mask, p.playerId);
                   const powerOps = {
                     x: ent.x * this.box.scale,
                     y: ent.y * this.box.scale,
-                    fillStyle: ent.powerUp ? 'green' : 'red',
                     strokeStyle: p.color,
                     categoryBits: mask,
                     maskBits: mask,
@@ -128,7 +139,7 @@ function update(millis) {
                   //console.log('powerops', powerOps);
                   const power = ent.powerUp ? new PowerUp(powerOps) : new PowerDown(powerOps);
                   this.addBody(power)
-                  this.box.applyForce(power.id, powerAngle, 300);
+                  this.box.applyForce(power.id, powerAngle, 400);
                   //console.log('masks', power.maskBits & ent.categoryBits, power.categoryBits & ent.maskBits, power, ent);
                 }
               }
