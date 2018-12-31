@@ -1,5 +1,8 @@
 import { box2d, utils } from 'frozenjs';
 import colors from './colors';
+import PowerUp from './PowerUp';
+import PowerDown from './PowerDown';
+import lib from './lib';
 
 const { entities } = box2d;
 const { radiansFromCenter, rotateRadiansAroundCenter, distance } = utils;
@@ -7,6 +10,7 @@ const { radiansFromCenter, rotateRadiansAroundCenter, distance } = utils;
 
 const playerSpeed = 0.0027;
 const BRICK_DEATH_ANIM = 2500;
+const SMALL_TIME = 10000;
 
 const centerPoint = {x: 0, y: 0};
 
@@ -41,14 +45,15 @@ function explodeBrick(game, brick, pieces, playSound) {
     game.box.applyImpulse(lilB.id, Math.random() * (Math.PI * 2), 30);
   }
   if(playSound) {
-    const randExplosion = game.explosions[Math.floor(Math.random() * game.explosions.length)];
-    randExplosion.play();
+    const randExplosion = game.sounds.explosions[Math.floor(Math.random() * game.sounds.explosions.length)];
+    randExplosion.play(0.2);
   }
   
 }
 
 function update(millis) {
   this.updateBox(millis);
+  const { scaleW, scaleH } = this.measurements;
 
   Object.keys(this.entities).forEach((k) => {
     const ent = this.entities[k];
@@ -59,8 +64,37 @@ function update(millis) {
       } else {
         ent.fillStyle = colors.rgba(ent.playerId, ent.life / BRICK_DEATH_ANIM * 0.6);
       }
+    } else if(ent.power) {
+      if(ent.x < 0 || ent.y < 0 || ent.x > scaleW || ent.y > scaleH ) {
+        console.log('KILL POWER', ent);
+        this.removeBody(ent);
+      }
+      if(ent.collisions && ent.collisions.length) {
+        console.log('GOT THE POWER', ent);
+        this.removeBody(ent);
+        if(ent.powerUp) {
+          this.sounds.powerup.play();
+          //TODO break this out into an interace
+          const pBricks = lib.shuffle(Object.keys(this.entities).reduce((acc, b) => {
+            const maybeBrick = this.entities[b];
+            if(maybeBrick.brick && maybeBrick.playerId === ent.playerId) {
+              acc.push(maybeBrick);
+            }
+            return acc;
+          }, []));
+          [0,1,2,3].forEach((idx) => {
+            if(pBricks[idx]) {
+              pBricks[idx].hitPoints ++;
+            }
+          });
+        }
+        else {
+          this.sounds.powerdown.play();
+          this.players[ent.playerId].smallTime = SMALL_TIME;
+        }
+      }
     }
-  })
+  });
 
   if(this.ball) {
     
@@ -70,14 +104,41 @@ function update(millis) {
         const ent = this.entities[et.id];
         if(ent) {
           if(ent.brick) {
-            this.removeBody(et);
-            //console.log('brick kill', ent);
-            explodeBrick(this, ent, 6, true);
+            ent.hitPoints--;
+            if(ent.hitPoints < 1 ) {
+              this.removeBody(et);
+              //console.log('brick kill', ent);
+              explodeBrick(this, ent, 6, true);
+              if(ent.powerUp || ent.powerDown && this.ball.hitPlayer) {
+                const p = this.ball.hitPlayer;
+                //console.log('hitplayer', p, p.playerId);
+                if(p && !p.dead && ent.playerId !== p.playerId) {
+                  const powerAngle = radiansFromCenter(ent, p.anchor);
+                  const mask = (1 << (8 + p.playerId));
+                  //console.log('power!', ent, p, mask, p.playerId);
+                  const powerOps = {
+                    x: ent.x * this.box.scale,
+                    y: ent.y * this.box.scale,
+                    fillStyle: ent.powerUp ? 'green' : 'red',
+                    strokeStyle: p.color,
+                    categoryBits: mask,
+                    maskBits: mask,
+                    playerId: p.playerId,
+                  };
+                  //console.log('powerops', powerOps);
+                  const power = ent.powerUp ? new PowerUp(powerOps) : new PowerDown(powerOps);
+                  this.addBody(power)
+                  this.box.applyForce(power.id, powerAngle, 300);
+                  //console.log('masks', power.maskBits & ent.categoryBits, power.categoryBits & ent.maskBits, power, ent);
+                }
+              }
+            }            
           }
           else if (ent.king) {
-            console.log('king kill', ent);
-            this.scream.play();
+            //console.log('king kill', ent);
+            this.sounds.scream.play();
             ent.dead = true;
+            this.players[ent.playerId].dead = true;
 
             Object.keys(this.entities).forEach((k) => {
               const brick = this.entities[k];
@@ -162,7 +223,7 @@ function update(millis) {
           const delta = paddleAngle - ballAngle;
           this.box.applyForce(this.ball.id, paddleAngle - (delta * 5) + angleOffset, newSpeed);
           this.ball.hitPaddle = null;
-          this.paddleSound.play();
+          this.sounds.paddle.play();
         } else {
           // console.log('ballhits', this.ball.wallHits, angleOffset, angleOffset * this.ball.wallHits);
           const direction = radiansFromCenter(centerPoint, this.ball.prevLinearVelocity);
@@ -192,6 +253,12 @@ function update(millis) {
         p.position = Math.max(p.position, 0);
       }
 
+      let paddleSize = 1;
+      if(p.smallTime > 0) {
+        p.smallTime = p.smallTime - millis;
+        paddleSize = 0.5;
+      }
+
       //const newPaddlePt = rotateRadiansAroundCenter(p.anchor, {x: p.anchor.x, y: p.anchor.y + (distFromAnchor / 30)}, p.angle + p.position - (Math.PI / 2));
       const newPaddlePt = rotateRadiansAroundCenter(p.pt, {x: p.pt.x, y: p.pt.y + this.distFromAnchor}, p.angle + p.position - (Math.PI / 2));
       
@@ -201,12 +268,12 @@ function update(millis) {
       
 
       paddleOps.points = [
-        {x: paddleOps.halfWidth, y: -paddleOps.halfHeight},
-        {x: paddleOps.halfWidth * 0.7, y: paddleOps.halfHeight / 2},
-        {x: paddleOps.halfWidth * 0.4, y: paddleOps.halfHeight},
-        {x: -paddleOps.halfWidth * 0.4, y: paddleOps.halfHeight},
-        {x: -paddleOps.halfWidth * 0.7, y: paddleOps.halfHeight / 2},
-        {x: -paddleOps.halfWidth, y: -paddleOps.halfHeight},
+        {x: paddleOps.halfWidth * paddleSize, y: -paddleOps.halfHeight},
+        {x: paddleOps.halfWidth * 0.7 * paddleSize, y: paddleOps.halfHeight / 2},
+        {x: paddleOps.halfWidth * 0.4 * paddleSize, y: paddleOps.halfHeight},
+        {x: -paddleOps.halfWidth * 0.4 * paddleSize, y: paddleOps.halfHeight},
+        {x: -paddleOps.halfWidth * 0.7 * paddleSize, y: paddleOps.halfHeight / 2},
+        {x: -paddleOps.halfWidth * paddleSize, y: -paddleOps.halfHeight},
       ];
 
       if(p.firePressed) {

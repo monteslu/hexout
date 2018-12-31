@@ -8,11 +8,18 @@ export default class Brick extends Polygon {
     //ctx.lineWidth = this.lineWidth;
     ctx.lineWidth = 1;
     ctx.lineJoin = "round";
-    ctx.fillStyle = this.fillStyle;
-     const gradient = ctx.createLinearGradient(0,this.prey, 0, this.prey + this.halfHeight * 2);
+    if(this.hitPoints > 2) {
+      ctx.fillStyle = '#EEE';
+    } else if(this.hitPoints > 1) {
+      ctx.fillStyle = '#AAA';
+    } else {
+      ctx.fillStyle = this.fillStyle;
+    }
+    
+    const gradient = ctx.createLinearGradient(0,this.prey, 0, this.prey + this.halfHeight * 2);
 
-     gradient.addColorStop(0, ctx.fillStyle);
-     gradient.addColorStop(1, '#444');
+    gradient.addColorStop(0, ctx.fillStyle);
+    gradient.addColorStop(1, '#444');
 
     ctx.translate(this.prex, this.prey);
     ctx.rotate(this.preAngle);

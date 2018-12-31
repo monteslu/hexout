@@ -9,6 +9,9 @@ import colors from './colors';
 import Brick from './Brick';
 import Face from './Face';
 import handleInput from './handleInput';
+import lib from './lib';
+
+console.log('shuffle', lib);
 
 const { BoxGame, entities, joints } = box2d;
 const { rotateRadiansAroundCenter, distance } = utils;
@@ -37,12 +40,17 @@ const game = new BoxGame({
   draw,
   update,
   loadResources: function(rm) {
-    this.explosions = [];
-    this.explosions.push(rm.loadSound('sounds/explosion5'));
-    this.explosions.push(rm.loadSound('sounds/explosion7'));
-    this.explosions.push(rm.loadSound('sounds/explosion8'));
-    this.scream = rm.loadSound('sounds/scream');
-    this.paddleSound = rm.loadSound('sounds/paddle');
+    const explosions = [];
+    explosions.push(rm.loadSound('sounds/explosion5'));
+    explosions.push(rm.loadSound('sounds/explosion7'));
+    explosions.push(rm.loadSound('sounds/explosion8'));
+    this.sounds = {
+      explosions,
+      scream: rm.loadSound('sounds/scream'),
+      paddle: rm.loadSound('sounds/paddle'),
+      powerup: rm.loadSound('sounds/powerup'),
+      powerdown: rm.loadSound('sounds/powerdown'),
+    };
   },
   initInput: function(im){
     im.addArrowKeyActions();
@@ -88,6 +96,7 @@ game.addBody(game.ball);
 
   //add everything to box from the boxData
 boxData.entities.forEach(function(props){
+  props.maskBits = 1;
   const Entity = entities[props.type];
   if(Entity){
     props.drawCenter = false;
@@ -118,13 +127,17 @@ let c = [
 
 const players = c.map((cpt, idx) => {
   return {
+    playerId: idx,
     pt: {x: cpt[0], y: cpt[1]},
     color: colors.rgb(idx),
     colorComplement: colors.complement(idx),
     angle: angs[idx],
     direction: 0,
     position: Math.PI / 2,
-    update: 0
+    update: 0,
+    paddleMaskBits: (1 << (8 + idx)) + 255,
+    smallTime: 0,
+    bigTime: 0,
   }
 });
 
@@ -169,6 +182,8 @@ players.forEach((p, idx) => {
     id: idx + 'paddle0',
     hidden: true,
     drawLocation: false,
+    maskBits: p.paddleMaskBits,
+    categoryBits: p.paddleMaskBits
   };
   p.paddleOps.points = [
     {x: p.paddleOps.halfWidth, y: -p.paddleOps.halfHeight},
@@ -199,7 +214,7 @@ players.forEach((p, idx) => {
   const cJoint = new joints.Distance({bodyId1: p.anchor.id, bodyId2: paddle.id, id: Math.random() + 'j'});
   game.addJoint(cJoint);
 
-  rawBricks.forEach((rb, jdx) => {
+  const pBricks = rawBricks.map((rb, jdx) => {
     const ops = {
       x: rb[0] + (fullW / 2),
       y: rb[1],
@@ -211,6 +226,9 @@ players.forEach((p, idx) => {
       fillStyle: p.color,
       brick: true,
       preAngle: p.angle,
+      maskBits: 1,
+      categoryBits: 1,
+      hitPoints: 1,
     };
   
     const pt = rotateRadiansAroundCenter(origin, ops, p.angle);
@@ -238,12 +256,20 @@ players.forEach((p, idx) => {
   
     const b = new Brick(ops);
     game.addBody(b);
+    return b;
 
   });
 
+  const shufPbricks = lib.shuffle(pBricks);
+  shufPbricks[0].powerUp = true;
+  shufPbricks[1].powerUp = true;
+  shufPbricks[2].powerDown = true;
+  shufPbricks[3].powerDown = true;
+  shufPbricks[4].powerDown = true;
+  shufPbricks[5].powerUp = true;
 });
 
-game.measurements = {fullW, fullH, hexSide, sideW, sint1, ang1, sint2, ang2};
+game.measurements = {fullW, fullH, hexSide, sideW, sint1, ang1, sint2, ang2, scaleW: fullW / game.box.scale, scaleH: fullH / game.box.scale};
 game.players = players;
 
 //if you want to take a look at the game object in dev tools

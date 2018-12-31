@@ -11,7 +11,7 @@ const colors = [
 
 function rgb(id) {
   const c = colors[id];
-  console.log('colors', c, id);
+  // console.log('colors', c, id);
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
@@ -29,7 +29,7 @@ function rgba(id, a) {
 
 function complement(id) {
   const c = colors[id];
-  console.log('colorsc', c, id);
+  // console.log('colorsc', c, id);
   const start = {r: c[0], g: c[1], b: c[2]};
   const hsv = RGB2HSV(start);;
   hsv.hue=HueShift(hsv.hue,180.0);
